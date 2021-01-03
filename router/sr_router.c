@@ -80,5 +80,26 @@ void sr_handlepacket(struct sr_instance* sr,
 
   /* fill in code here */
 
+  /*	#CMP4503 OUR CODE STARTS HERE
+  if (our packet ether type ip) {
+	
+	  
+
+  
+  }
+
+  else if (packet is our ARPRequest) {
+	//turn back with our mac address  
+  }
+
+  else if (packet is ARP response to us) {
+	//update ARP cache 
+	//return with 
+  
+  }
+
+  */
+  //	#CMP4503 OUR CODE ENDS HERE
+
 }/* end sr_ForwardPacket */
 
