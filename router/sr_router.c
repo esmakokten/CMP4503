@@ -77,29 +77,37 @@ void sr_handlepacket(struct sr_instance* sr,
   assert(interface);
 
   printf("*** -> Received packet of length %d \n",len);
-
   /* fill in code here */
 
-  /*	#CMP4503 OUR CODE STARTS HERE
-  if (our packet ether type ip) {
-	
-	  
+  /*#CMP4503 OUR CODE STARTS HERE*/
+  printf("#CMP4503 interface: %s\n#", interface);
+  print_hdrs(packet);
+
+  switch (ethertype(packet)) {
+	  case ethertype_arp:
+		  sr_arp_hdr_t *arp_hdr = (sr_arp_hdr_t *)(buf);
+		  switch (ntohs(arp_hdr->ar_op)) {
+			case arp_op_request:
+				printf("#CMP4503 ARP Request received.#")
+					//turn back with our mac address  
+			case arp_op_reply:
+				printf("#CMP4503 ARP Reply received.#")
+					//update ARP cache 
+					//return with 
+		  }
+		  break;
+
+	  case ethertype_ip:
+		  //handle ip packet here
+		  break;
+
+	  default:
+		  Debug("Dropping packet due to invalid Ethernet message type: 0x%X.\n", ethertype(packet));
+		  return;
+  }
 
   
-  }
-
-  else if (packet is our ARPRequest) {
-	//turn back with our mac address  
-  }
-
-  else if (packet is ARP response to us) {
-	//update ARP cache 
-	//return with 
-  
-  }
-
-  */
-  //	#CMP4503 OUR CODE ENDS HERE
+  /*#CMP4503 OUR CODE ENDS HERE*/
 
 }/* end sr_ForwardPacket */
 

@@ -17,7 +17,7 @@
 #endif /* _LINUX_ */
 
 #ifdef _SOLARIS_
-#include </usr/include/sys/int_types.h>
+//#include </usr/include/sys/int_types.h>
 #endif /* SOLARIS */
 
 #ifdef _DARWIN_

@@ -3,9 +3,9 @@
  * format as well as a set of operations for logging.
  */
 
-
 #ifdef _LINUX_
 #include <stdint.h>
+#include <stdio.h>
 #endif /* _LINUX_ */
 
 #ifdef _DARWIN_
