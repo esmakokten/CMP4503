@@ -88,8 +88,9 @@ void sr_handlepacket(struct sr_instance* sr,
 		  sr_arp_hdr_t *arp_hdr = (sr_arp_hdr_t *)(buf);
 		  switch (ntohs(arp_hdr->ar_op)) {
 			case arp_op_request:
-				if (packet->ar_tip == interface->ip) { //if request send to our own ip
-					//turn back with our mac address
+				if (packet->ar_tip == interface->ip) { 
+					/*if request send to our own ip
+					turn back with our mac address*/
 					printf("#CMP4503 ARP Request received.#")
 						uint8_t* replyPacket = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t));
 					sr_ethernet_hdr_t* ethernetHdr = (sr_ethernet_hdr_t*)replyPacket;
@@ -122,13 +123,13 @@ void sr_handlepacket(struct sr_instance* sr,
 				break;
 			case arp_op_reply:
 				printf("#CMP4503 ARP Reply received.#");
-				//update ARP cache 
-				//return with 
+				/*Send quequed packages and update arp cache*/
 				if (packet->ar_tip == interface->ip) {
-					//update ARP cache 
+					/*look for the request*/
 					struct sr_arpreq* requestPointer = sr_arpcache_insert(
 						&sr->cache, packet->ar_sha, ntohl(packet->ar_sip));
 					if (requestPointer != NULL) {
+						/*Send quequed packages*/
 						printf("#CMP4503 Received ARP reply, sending all queued packets.\n");
 						int waiting_count = 1;
 						while (requestPointer->packets != NULL)
@@ -148,7 +149,7 @@ void sr_handlepacket(struct sr_instance* sr,
 							free(curr->iface);
 							free(curr);
 						}
-
+						/*update ARP cache*/
 						sr_arpreq_destroy(&sr->cache, requestPointer);
 					}
 					else
@@ -161,7 +162,7 @@ void sr_handlepacket(struct sr_instance* sr,
 		  break;
 
 	  case ethertype_ip:
-		  //handle ip packet here
+		  /*handle ip packet here*/
 		  break;
 
 	  default:
