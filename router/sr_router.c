@@ -13,7 +13,8 @@
 
 #include <stdio.h>
 #include <assert.h>
-
+#include <stdlib.h>
+#include <string.h>
 
 #include "sr_if.h"
 #include "sr_rt.h"
@@ -81,53 +82,54 @@ void sr_handlepacket(struct sr_instance* sr,
 
   /*#CMP4503 OUR CODE STARTS HERE*/
   printf("#CMP4503 interface: %s\n#", interface);
-  print_hdrs(packet);
+  struct sr_if* iface = sr_get_interface(sr, interface);
+  print_hdrs(packet,len);
 
   switch (ethertype(packet)) {
-	  case ethertype_arp:
-		  sr_arp_hdr_t *arp_hdr = (sr_arp_hdr_t *)(buf);
+	case ethertype_arp:;
+		  sr_arp_hdr_t* arp_hdr = (sr_arp_hdr_t *)(packet);
 		  switch (ntohs(arp_hdr->ar_op)) {
-			case arp_op_request:
-				if (packet->ar_tip == interface->ip) { 
+			case arp_op_request:;
+				if (arp_hdr->ar_tip == iface->ip) {
 					/*if request send to our own ip
 					turn back with our mac address*/
-					printf("#CMP4503 ARP Request received.#")
-						uint8_t* replyPacket = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t));
-					sr_ethernet_hdr_t* ethernetHdr = (sr_ethernet_hdr_t*)replyPacket;
+					printf("#CMP4503 ARP Request received.#");
+					uint8_t* replyPacket = (uint8_t *)malloc(sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t));
+					sr_ethernet_hdr_t* ethernetHdr = (sr_ethernet_hdr_t*) replyPacket;
 					sr_arp_hdr_t* arpHdr = (sr_arp_hdr_t*)(replyPacket + sizeof(sr_ethernet_hdr_t));
 
 					printf("#CMP4503 Sending ARP reply.\n");
 
 					printf("#CMP4503 Filling Ethernet header...\n");
-					memcpy(ethernetHdr->ether_dhost, packet->ar_sha, ETHER_ADDR_LEN);
-					memcpy(ethernetHdr->ether_shost, interface->addr, ETHER_ADDR_LEN);
+					memcpy(ethernetHdr->ether_dhost, arp_hdr->ar_sha, ETHER_ADDR_LEN);
+					memcpy(ethernetHdr->ether_shost, iface->addr, ETHER_ADDR_LEN);
 					ethernetHdr->ether_type = htons(ethertype_arp);
 
 					printf("#CMP4503 Filling ARP header...\n");
 					arpHdr->ar_hrd = htons(arp_hrd_ethernet);
 					arpHdr->ar_pro = htons(ethertype_ip);
 					arpHdr->ar_hln = ETHER_ADDR_LEN;
-					arpHdr->ar_pln = IP_ADDR_LEN;
+					arpHdr->ar_pln = 4;
 					arpHdr->ar_op = htons(arp_op_reply);
-					memcpy(arpHdr->ar_sha, interface->addr, ETHER_ADDR_LEN);
-					arpHdr->ar_sip = interface->ip;
-					memcpy(arpHdr->ar_tha, packet->ar_sha, ETHER_ADDR_LEN);
-					arpHdr->ar_tip = packet->ar_sip;
+					memcpy(arpHdr->ar_sha, iface->addr, ETHER_ADDR_LEN);
+					arpHdr->ar_sip = iface->ip;
+					memcpy(arpHdr->ar_tha, arp_hdr->ar_sha, ETHER_ADDR_LEN);
+					arpHdr->ar_tip = arp_hdr->ar_sip;
 
 					sr_send_packet(sr, replyPacket, sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t),
-						interface->name);
+						iface->name);
 					printf("#CMP4503 Printing header of the reply packet.\n");
-					print_hdrs(packet);
+					print_hdrs(replyPacket, len);
 					free(replyPacket);
 				} 
 				break;
-			case arp_op_reply:
+			case arp_op_reply:;
 				printf("#CMP4503 ARP Reply received.#");
 				/*Send quequed packages and update arp cache*/
-				if (packet->ar_tip == interface->ip) {
+				if (arp_hdr->ar_tip == iface->ip) {
 					/*look for the request*/
 					struct sr_arpreq* requestPointer = sr_arpcache_insert(
-						&sr->cache, packet->ar_sha, ntohl(packet->ar_sip));
+						&sr->cache, arp_hdr->ar_sha, ntohl(arp_hdr->ar_sip));
 					if (requestPointer != NULL) {
 						/*Send quequed packages*/
 						printf("#CMP4503 Received ARP reply, sending all queued packets.\n");
@@ -136,8 +138,7 @@ void sr_handlepacket(struct sr_instance* sr,
 						{	
 							struct sr_packet* curr = requestPointer->packets;
 							printf("#CMP4503 Copy in the newly discovered Ethernet address of the frame");
-							memcpy(((sr_ethernet_hdr_t*)curr->buf)->ether_dhost,
-								packet->ar_sha, ETHER_ADDR_LEN);
+							memcpy(((sr_ethernet_hdr_t*)curr->buf)->ether_dhost, arp_hdr->ar_sha, ETHER_ADDR_LEN);
 
 							printf("#CMP4503 Sending %d . package waiting for this ip",waiting_count);
 							sr_send_packet(sr, curr->buf, curr->len, curr->iface);
